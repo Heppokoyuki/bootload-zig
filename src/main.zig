@@ -11,7 +11,7 @@ fn puts(msg: []const u8) void {
     }
 }
 
-fn puts_multi(msg: [*:0]const u16) void {
+fn puts_multi(msg: []const u16) void {
     var i: usize = 0;
     puts("a\r\n");
     while (msg[i] != 0) : (i += 1) {
@@ -68,7 +68,7 @@ const Time = extern struct {
 };
 
 const FileInfo = extern struct {
-    size: u64, file_size: u64, physical_size: u64, create_time: Time, last_access_time: Time, modification_time: Time, attribute: u64, file_name: *[*:0]u16
+    size: u64, file_size: u64, physical_size: u64, create_time: Time, last_access_time: Time, modification_time: Time, attribute: u64, file_name: [100:0]u16
 };
 
 const max_file_buf: usize = 1024;
@@ -76,7 +76,7 @@ const max_file_buf: usize = 1024;
 pub fn main() void {
     const boot_services = uefi.system_table.boot_services.?;
     var root: *FileProtocol = undefined;
-    var file_info: *FileInfo = undefined;
+    var file_info: FileInfo = undefined;
     var file_buf: [max_file_buf]u8 = undefined;
     var buf_size: u64 = @bitCast(u64, max_file_buf);
     var simple_file_system_protocol: ?*SimpleFileSystemProtocol = undefined;
@@ -101,12 +101,10 @@ pub fn main() void {
         puts("openVolume Error!!\r\n");
     }
     while (true) {
-        _ = root.read(&buf_size, @ptrCast(*c_void, &file_buf));
+        _ = root.read(&buf_size, @ptrCast(*c_void, &file_info));
         if (buf_size == 0)
             break;
-        file_info = @ptrCast(*FileInfo, @alignCast(8, &file_buf));
-        printf(buf[0..], "{}", .{@typeName(@TypeOf(file_info.file_name.*))});
-        puts_multi(file_info.file_name.*);
+        puts_multi(&file_info.file_name);
         puts(" ");
     }
 
