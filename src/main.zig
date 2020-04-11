@@ -1,62 +1,29 @@
 const uefi = @import("std").os.uefi;
-const BootServices = uefi.tables.BootServices;
-const Guid = uefi.Guid;
-const fmt = @import("std").fmt;
-const SimpleFileSystemProtocol = uefi.protocols.SimpleFileSystemProtocol;
-const FileProtocol = uefi.protocols.FileProtocol;
-const Time = uefi.Time;
 const FileInfo = uefi.protocols.FileInfo;
+const FileProtocol = uefi.protocols.FileProtocol;
+const EFI = @import("efi.zig");
 
-var con_out: *uefi.protocols.SimpleTextOutputProtocol = undefined;
-
-fn puts(msg: []const u8) void {
-    for (msg) |c| {
-        _ = con_out.outputString(&[_:0]u16{ c, 0 });
-    }
-}
-
-fn puts_multi(msg: [*:0]const u16) void {
-    var i: usize = 0;
-    while (msg[i] != 0) : (i += 1) {
-        _ = con_out.outputString(&[_:0]u16{ msg[i], 0 });
-    }
-}
-
-fn printf(buf: []u8, comptime format: []const u8, args: var) void {
-    puts(fmt.bufPrint(buf, format, args) catch unreachable);
-}
-
-const max_file_buf: usize = 1024;
+const page_size: u64 = 1 << 12;
 
 pub fn main() void {
-    const boot_services = uefi.system_table.boot_services.?;
-    var root: *FileProtocol = undefined;
-    var file_info: *FileInfo = undefined;
-    var file_buf: [max_file_buf]u8 = undefined;
-    var buf_size: u64 = @bitCast(u64, max_file_buf);
-    var simple_file_system_protocol: ?*SimpleFileSystemProtocol = undefined;
+    var file_info: FileInfo = undefined;
+    var text: *FileProtocol = undefined;
     var key: uefi.protocols.InputKey = undefined;
     var str: [3:0]u16 = undefined;
+    var buf_pages: [*]align(4096) u8 = undefined;
     var buf: [100]u8 = undefined;
-    const sfsp_guid align(8) = SimpleFileSystemProtocol.guid;
 
-    con_out = uefi.system_table.con_out.?;
-    _ = con_out.clearScreen();
-    puts("Hello, UEFI!\r\n");
-    if (boot_services.locateProtocol(&sfsp_guid, null, @ptrCast(*?*c_void, &simple_file_system_protocol)) != uefi.Status.Success) {
-        puts("locateProtocol Error!!\r\n");
-    }
-    if (simple_file_system_protocol.?.openVolume(&root) != uefi.Status.Success) {
-        puts("openVolume Error!!\r\n");
-    }
-    while (true) {
-        _ = root.read(&buf_size, @ptrCast([*]u8, &file_buf));
-        if (buf_size == 0)
-            break;
-        file_info = @ptrCast(*FileInfo, @alignCast(8, &file_buf));
-        puts_multi(file_info.getFileName());
-        puts(" ");
-    }
+    EFI.init();
+    EFI.puts("Hello, UEFI!\r\n");
+
+    text = EFI.open_file(&[_:0]u16{ 't', 'e', 'x', 't', '.', 't', 'x', 't' });
+    EFI.read_file_info(text, &file_info);
+    EFI.puts_multi(file_info.getFileName());
+    EFI.printf(buf[0..], "file_info.file_size: {}", .{file_info.file_size});
+    buf_pages = EFI.allocate_pages(1); //(file_info.file_size + page_size - 1) >> 12);
+    //if (text.read(&file_info.file_size, buf_pages) != uefi.Status.Success) {
+    //    EFI.puts("file read error!!\r\n");
+    //}
 
     while (true) {
         if (uefi.system_table.con_in.?.readKeyStroke(&key) == uefi.Status.Success) {
@@ -68,7 +35,7 @@ pub fn main() void {
                 str[1] = '\n';
                 str[2] = 0;
             }
-            _ = con_out.outputString(&str);
+            _ = EFI.puts_raw(&str);
         }
     }
 }

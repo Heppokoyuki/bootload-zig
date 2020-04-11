@@ -1,2 +1,3 @@
 ovmf/*
 zig-cache/*
+fs/*
