@@ -60,11 +60,15 @@ pub fn open_file(path: [*:0]const u16) *FileProtocol {
     return file;
 }
 
-pub fn read_file_info(file: *FileProtocol, info: *FileInfo) void {
-    var buf_size: usize = @sizeOf(FileInfo);
-    if (file.get_info(&file_info_guid, &buf_size, @ptrCast(*c_void, info)) != uefi.Status.Success) {
+pub fn read_file_info(file: *FileProtocol, info: **FileInfo) void {
+    var buf_size: usize = 1024;
+    var buf: [1024]u8 = undefined;
+    var fmt_buf: [1024]u8 = undefined;
+    if (file.get_info(&file_info_guid, &buf_size, @ptrCast([*]u8, &buf)) != uefi.Status.Success) {
         puts("read file info error!!\r\n");
     }
+    printf(fmt_buf[0..], "aaa: {}, {}, {}, {}, {}, {}, {}, {}", .{ buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7] });
+    info.* = @ptrCast(*FileInfo, @alignCast(8, &buf));
 }
 
 pub fn allocate_pages(size: usize) [*]align(4096) u8 {

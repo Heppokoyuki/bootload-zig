@@ -6,7 +6,7 @@ const EFI = @import("efi.zig");
 const page_size: u64 = 1 << 12;
 
 pub fn main() void {
-    var file_info: FileInfo = undefined;
+    var file_info: *FileInfo = undefined;
     var text: *FileProtocol = undefined;
     var key: uefi.protocols.InputKey = undefined;
     var str: [3:0]u16 = undefined;
@@ -19,7 +19,7 @@ pub fn main() void {
     text = EFI.open_file(&[_:0]u16{ 't', 'e', 'x', 't', '.', 't', 'x', 't' });
     EFI.read_file_info(text, &file_info);
     EFI.puts_multi(file_info.getFileName());
-    EFI.printf(buf[0..], "file_info.file_size: {}", .{file_info.file_size});
+    EFI.printf(buf[0..], "file_info.file_size: {}", .{file_info.size});
     buf_pages = EFI.allocate_pages(1); //(file_info.file_size + page_size - 1) >> 12);
     //if (text.read(&file_info.file_size, buf_pages) != uefi.Status.Success) {
     //    EFI.puts("file read error!!\r\n");
