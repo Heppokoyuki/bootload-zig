@@ -1,20 +1,33 @@
 const uefi = @import("std").os.uefi;
+const BootServices = uefi.tables.BootServices;
 const FileProtocol = uefi.protocols.FileProtocol;
 const FileInfo = uefi.protocols.FileInfo;
 const SimpleFileSystemProtocol = uefi.protocols.SimpleFileSystemProtocol;
+const GraphicsOutputProtocol = uefi.protocols.GraphicsOutputProtocol;
+const SimpleTextOutputProtocol = uefi.protocols.SimpleTextOutputProtocol;
 const AllocateType = uefi.tables.AllocateType;
 const MemoryType = uefi.tables.MemoryType;
 const Guid = uefi.Guid;
+const MemoryDescriptor = uefi.tables.MemoryDescriptor;
 const fmt = @import("std").fmt;
 
-var boot_services: *uefi.tables.BootServices = undefined;
+var boot_services: *BootServices = undefined;
 var simple_file_system_protocol: ?*SimpleFileSystemProtocol = undefined;
-var con_out: *uefi.protocols.SimpleTextOutputProtocol = undefined;
+var con_out: *SimpleTextOutputProtocol = undefined;
+var graphics: *GraphicsOutputProtocol = undefined;
 
 var sfsp_guid align(8) = SimpleFileSystemProtocol.guid;
+var gop_guid align(8) = GraphicsOutputProtocol.guid;
 var file_info_guid align(8) = FileProtocol.guid;
+var fmt_buf: [1024]u8 = undefined;
 
 pub var root_file: *FileProtocol = undefined;
+pub const mmap_size: usize = 200;
+pub var mmap: [mmap_size]MemoryDescriptor = undefined;
+pub var mmap_key: usize = undefined;
+pub var mmap_desc_num: usize = undefined;
+pub var mmap_desc_size: usize = undefined;
+pub var mmap_desc_ver: u32 = undefined;
 
 pub fn puts(msg: []const u8) void {
     for (msg) |c| {
@@ -46,9 +59,37 @@ pub fn init() void {
     if (boot_services.locateProtocol(&sfsp_guid, null, @ptrCast(*?*c_void, &simple_file_system_protocol)) != uefi.Status.Success) {
         puts("locateProtocol Error!!\r\n");
     }
+    if (boot_services.locateProtocol(&gop_guid, null, @ptrCast(*?*c_void, &graphics)) != uefi.Status.Success) {
+        puts("locateProtocol Error!!\r\n");
+    }
 
     if (simple_file_system_protocol.?.openVolume(&root_file) != uefi.Status.Success) {
         puts("openVolume Error!!\r\n");
+    }
+}
+
+pub fn exit_boot_services() void {
+    const status: uefi.Status = boot_services.exitBootServices(uefi.handle, mmap_key);
+    printf(fmt_buf[0..], "status: {}", .{status});
+    //if (boot_services.exitBootServices(uefi.handle, mmap_key) != uefi.Status.Success) {
+    if (status != uefi.Status.Success) {
+        puts("exitBootServices() failed!\r\n");
+    }
+}
+
+pub fn init_memory_map() void {
+    var mmap_size_in_byte: usize = @sizeOf(MemoryDescriptor) * mmap_size;
+    if (boot_services.getMemoryMap(&mmap_size_in_byte, &mmap, &mmap_key, &mmap_desc_size, &mmap_desc_ver) != uefi.Status.Success) {
+        puts("GetMemoryMap() failed!\r\n");
+    }
+    mmap_desc_num = mmap_size_in_byte / mmap_desc_size;
+}
+
+pub fn dump_memory_map() void {
+    var i: usize = 0;
+    while (i < mmap_desc_num) {
+        printf(fmt_buf[0..], "{} {} {} {}\r\n", .{ mmap[i].type, mmap[i].physical_start, mmap[i].virtual_start, mmap[i].number_of_pages });
+        i += 1;
     }
 }
 
@@ -60,15 +101,11 @@ pub fn open_file(path: [*:0]const u16) *FileProtocol {
     return file;
 }
 
-pub fn read_file_info(file: *FileProtocol, info: **FileInfo) void {
-    var buf_size: usize = 1024;
-    var buf: [1024]u8 = undefined;
-    var fmt_buf: [1024]u8 = undefined;
-    if (file.get_info(&file_info_guid, &buf_size, @ptrCast([*]u8, &buf)) != uefi.Status.Success) {
+pub fn read_file_info(file: *FileProtocol, info: *FileInfo) void {
+    var buf_size: u64 = @sizeOf(FileInfo) + @sizeOf(u16) * 100;
+    if (file.get_info(&file_info_guid, &buf_size, @ptrCast([*]u8, info)) != uefi.Status.Success) {
         puts("read file info error!!\r\n");
     }
-    printf(fmt_buf[0..], "aaa: {}, {}, {}, {}, {}, {}, {}, {}", .{ buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7] });
-    info.* = @ptrCast(*FileInfo, @alignCast(8, &buf));
 }
 
 pub fn allocate_pages(size: usize) [*]align(4096) u8 {

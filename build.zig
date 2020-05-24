@@ -29,7 +29,7 @@ pub fn build(b: *Builder) !void {
         "-drive",
         "format=raw,file=fat:rw:fs",
     });
-    const run_qemu = b.addSystemCommand(qemu_args.toSlice());
+    const run_qemu = b.addSystemCommand(qemu_args.items);
     run_qemu.step.dependOn(&exe.step);
     run.dependOn(&run_qemu.step);
 }
