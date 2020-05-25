@@ -62,17 +62,13 @@ pub fn init() void {
     if (boot_services.locateProtocol(&gop_guid, null, @ptrCast(*?*c_void, &graphics)) != uefi.Status.Success) {
         puts("locateProtocol Error!!\r\n");
     }
-
     if (simple_file_system_protocol.?.openVolume(&root_file) != uefi.Status.Success) {
         puts("openVolume Error!!\r\n");
     }
 }
 
 pub fn exit_boot_services() void {
-    const status: uefi.Status = boot_services.exitBootServices(uefi.handle, mmap_key);
-    printf(fmt_buf[0..], "status: {}", .{status});
-    //if (boot_services.exitBootServices(uefi.handle, mmap_key) != uefi.Status.Success) {
-    if (status != uefi.Status.Success) {
+    if (boot_services.exitBootServices(uefi.handle, mmap_key) != uefi.Status.Success) {
         puts("exitBootServices() failed!\r\n");
     }
 }

@@ -37,7 +37,7 @@ pub fn elf_load(file: [*]u8) isize {
             i += 1;
             continue;
         }
-        EFI.printf(fmt_buf[0..], "dest: 0x{x}, source: 0x{x}\r\n", .{ ph[i].p_paddr, @ptrToInt(ehdr) + ph[i].p_offset });
+        //        EFI.printf(fmt_buf[0..], "dest: 0x{x}, source: 0x{x}\r\n", .{ ph[i].p_paddr, @ptrToInt(ehdr) + ph[i].p_offset });
         @memcpy(@intToPtr([*]u8, ph[i].p_paddr), @intToPtr([*]u8, @ptrToInt(ehdr) + ph[i].p_offset), ph[i].p_filesz);
         i += 1;
     }

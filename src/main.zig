@@ -42,14 +42,15 @@ pub fn main() void {
     }
     kernel_stack_pages = EFI.allocate_pages(kernel_stack_size);
 
-    EFI.exit_boot_services();
-
     ELF.elf_get_address(buf_pages, &kernel_start_address, &kernel_end_address);
     EFI.printf(buf[0..], "kernel start: 0x{x}, end: 0x{x}\r\n", .{ kernel_start_address, kernel_end_address });
 
     EFI.init_memory_map();
     EFI.dump_memory_map();
+    EFI.exit_boot_services();
     _ = ELF.elf_load(buf_pages);
+
+    while (true) {}
 
     while (true) {
         if (uefi.system_table.con_in.?.readKeyStroke(&key) == uefi.Status.Success) {
