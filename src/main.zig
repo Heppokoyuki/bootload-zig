@@ -18,16 +18,12 @@ var fb: *FrameBuffer = undefined;
 fn init_graphics() void {
     const mode: *GraphicsOutputProtocolMode = EFI.get_graphics_mode();
     fb = @ptrCast(*FrameBuffer, EFI.allocate_pool(@sizeOf(FrameBuffer)));
-    fb.base = mode.frame_buffer_base;
-    fb.size = mode.frame_buffer_size;
-    fb.hr = mode.info.horizontal_resolution;
-    fb.vr = mode.info.vertical_resolution;
+    fb.* = FrameBuffer.init(mode.frame_buffer_base, mode.frame_buffer_size, mode.info.horizontal_resolution, mode.info.vertical_resolution);
     zigsaw.frame_buffer = fb;
 }
 
 pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn {
     @setCold(true);
-    var buf: [100]u8 = undefined;
     EFI.puts("PANIC: ");
     EFI.puts(msg);
     EFI.puts("\r\n");
@@ -49,6 +45,9 @@ pub fn main() void {
     EFI.puts("Hello, UEFI!\r\n");
 
     zigsaw = @ptrCast(*Zigsaw, EFI.allocate_pool(@sizeOf(Zigsaw)));
+    init_graphics();
+
+    EFI.printf(buf[0..], "base: 0x{x}\r\n", .{zigsaw.frame_buffer.base});
 
     text = EFI.open_file(&[_:0]u16{ 't', 'e', 's', 't' });
     EFI.read_file_info(text, &file_info);
@@ -65,8 +64,6 @@ pub fn main() void {
     ELF.get_address(buf_pages, &kernel_start_address, &kernel_end_address);
     EFI.printf(buf[0..], "kernel start: 0x{x}, end: 0x{x}\r\n", .{ kernel_start_address, kernel_end_address });
     EFI.printf(buf[0..], "kernel entrypoint: 0x{x}\r\n", .{ELF.get_entrypoint(buf_pages)});
-
-    init_graphics();
 
     EFI.get_memory_map_and_exit_boot_services();
     _ = ELF.load(buf_pages, zigsaw);

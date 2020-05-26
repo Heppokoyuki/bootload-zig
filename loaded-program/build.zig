@@ -8,6 +8,7 @@ pub fn build(b: *Builder) void {
         .os_tag = .freestanding,
         .abi = .gnu,
     });
+    exe.setOutputDir("../fs");
     exe.setLinkerScriptPath("src/linker.ld");
     exe.setBuildMode(mode);
     exe.install();
