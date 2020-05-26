@@ -6,7 +6,6 @@ const serial = @import("serial.zig");
 const builtin = @import("builtin");
 
 var buf: [200]u8 = undefined;
-var fb: *FrameBuffer = undefined;
 
 pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn {
     @setCold(true);
@@ -18,15 +17,14 @@ pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn
 
 export fn _start(zigsaw: *Zigsaw) noreturn {
     serial.init();
-    fb = zigsaw.frame_buffer;
-    serial.printf(buf[0..], "zigsaw: {*}, fb: {*}, base: {x}, size: {x}, hr: {x}, vr: {x}\n", .{ zigsaw, zigsaw.frame_buffer, fb.base, fb.size, fb.hr, fb.vr });
-    //var fb: [*]u8 = @intToPtr([*]u8, zigsaw.frame_buffer.base);
-    //var i: u32 = 0;
-    //while (i < 640 * 480 * 4) : (i += 4) {
-    //    fb[i] = @truncate(u8, @divTrunc(i, 256));
-    //    fb[i + 1] = @truncate(u8, @divTrunc(i, 1536));
-    //    fb[i + 2] = @truncate(u8, @divTrunc(i, 2560));
-    //}
+    serial.printf(buf[0..], "zigsaw: {*}, fb: {*}, base: {x}\n", .{ zigsaw, zigsaw.frame_buffer, zigsaw.frame_buffer.base });
+    var fb: [*]u8 = @intToPtr([*]u8, zigsaw.frame_buffer.base);
+    var i: u32 = 0;
+    while (i < 640 * 480 * 4) : (i += 4) {
+        fb[i] = @truncate(u8, @divTrunc(i, 256));
+        fb[i + 1] = @truncate(u8, @divTrunc(i, 1536));
+        fb[i + 2] = @truncate(u8, @divTrunc(i, 2560));
+    }
     serial.writeString("hello\n");
     while (true) {}
 }

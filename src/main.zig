@@ -47,7 +47,7 @@ pub fn main() void {
     zigsaw = @ptrCast(*Zigsaw, EFI.allocate_pool(@sizeOf(Zigsaw)));
     init_graphics();
 
-    EFI.printf(buf[0..], "base: 0x{x}\r\n", .{zigsaw.frame_buffer.base});
+    EFI.printf(buf[0..], "zigsaw: {*}, base: 0x{x}\r\n", .{ zigsaw, zigsaw.frame_buffer.base });
 
     text = EFI.open_file(&[_:0]u16{ 't', 'e', 's', 't' });
     EFI.read_file_info(text, &file_info);
@@ -64,9 +64,10 @@ pub fn main() void {
     ELF.get_address(buf_pages, &kernel_start_address, &kernel_end_address);
     EFI.printf(buf[0..], "kernel start: 0x{x}, end: 0x{x}\r\n", .{ kernel_start_address, kernel_end_address });
     EFI.printf(buf[0..], "kernel entrypoint: 0x{x}\r\n", .{ELF.get_entrypoint(buf_pages)});
+    kernel_stack_pages = EFI.allocate_pages(kernel_stack_size);
 
     EFI.get_memory_map_and_exit_boot_services();
-    _ = ELF.load(buf_pages, zigsaw);
+    _ = ELF.load(buf_pages, zigsaw, kernel_stack_pages);
 
     while (true) {}
 }
