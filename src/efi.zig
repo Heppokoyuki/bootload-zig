@@ -70,7 +70,7 @@ pub fn get_memory_map_and_exit_boot_services() void {
     var mmapsize: usize = 0;
     var key: usize = undefined;
 
-    puts("trying to exit BootServices...");
+    puts("trying to exit BootServices...\r\n");
     while (boot_services.getMemoryMap(&mmapsize, mmap, &key, &mmap_desc_size, &mmap_desc_ver) == uefi.Status.BufferTooSmall) {
         if (uefi.Status.Success != boot_services.allocatePool(uefi.tables.MemoryType.LoaderData, mmapsize, @ptrCast(*[*]align(8) u8, &mmap))) {
             @panic("allocatePool() failed!\r\n");
@@ -80,14 +80,6 @@ pub fn get_memory_map_and_exit_boot_services() void {
         @panic("exitBootServices() failed!\r\n");
     }
 }
-
-//pub fn dump_memory_map() void {
-//    var i: usize = 0;
-//    while (i < mmap_desc_num) {
-//        printf(fmt_buf[0..], "{} {} {} {}\r\n", .{ mmap[i].type, mmap[i].physical_start, mmap[i].virtual_start, mmap[i].number_of_pages });
-//        i += 1;
-//    }
-//}
 
 pub fn open_file(path: [*:0]const u16) *FileProtocol {
     var file: *FileProtocol = undefined;
@@ -114,4 +106,12 @@ pub fn allocate_pages(size: usize) [*]align(4096) u8 {
         @panic("allocate pages error!!\r\n");
     }
     return pages;
+}
+
+pub fn allocate_pool(size: usize) [*]align(8) u8 {
+    var buf: [*]align(8) u8 = undefined;
+    if (boot_services.allocatePool(MemoryType.LoaderData, size, &buf) != uefi.Status.Success) {
+        @panic("allocate pool error!!\r\n");
+    }
+    return buf;
 }

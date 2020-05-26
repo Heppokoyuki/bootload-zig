@@ -3,12 +3,12 @@ const mem = std.mem;
 const elf = std.elf;
 const Zigsaw = @import("zigsaw.zig").Zigsaw;
 
-pub fn elf_hdr_check(file: [*]const u8) isize {
+pub fn hdr_check(file: [*]const u8) isize {
     if (!mem.eql(u8, file[0..4], "\x7fELF")) return -1;
     return 0;
 }
 
-pub fn elf_get_address(file: [*]u8, start: *u64, end: *u64) void {
+pub fn get_address(file: [*]u8, start: *u64, end: *u64) void {
     const ehdr: *elf.Elf64_Ehdr = @ptrCast(*elf.Elf64_Ehdr, @alignCast(8, file));
     var ph: [*]elf.Elf64_Phdr = @intToPtr([*]elf.Elf64_Phdr, @ptrToInt(file) + ehdr.e_phoff);
     var i: usize = 0;
@@ -25,10 +25,15 @@ pub fn elf_get_address(file: [*]u8, start: *u64, end: *u64) void {
     }
 }
 
-pub fn elf_load(file: [*]u8, kernel_param: *Zigsaw) isize {
+pub fn get_entrypoint(file: [*]u8) usize {
+    const ehdr: *elf.Elf64_Ehdr = @ptrCast(*elf.Elf64_Ehdr, @alignCast(8, file));
+    return ehdr.e_entry;
+}
+
+pub fn load(file: [*]u8, kernel_param: *Zigsaw) void {
     const ehdr: *elf.Elf64_Ehdr = @ptrCast(*elf.Elf64_Ehdr, @alignCast(8, file));
     var ph: [*]elf.Elf64_Phdr = @intToPtr([*]elf.Elf64_Phdr, @ptrToInt(file) + ehdr.e_phoff);
-    const entry = @intToPtr(fn (*Zigsaw) void, ehdr.e_entry);
+    const entry = @intToPtr(fn (*Zigsaw) noreturn, ehdr.e_entry);
     var i: usize = 0;
     while (i < ehdr.e_phnum) {
         if (ph[i].p_type != elf.PT_LOAD) {
@@ -39,5 +44,4 @@ pub fn elf_load(file: [*]u8, kernel_param: *Zigsaw) isize {
         i += 1;
     }
     entry(kernel_param);
-    return 0;
 }
