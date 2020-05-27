@@ -59,7 +59,7 @@ pub fn main() void {
 
     EFI.printf(buf[0..], "zigsaw: {*}, base: 0x{x}\r\n", .{ zigsaw, zigsaw.frame_buffer.base });
 
-    text = EFI.open_file(&[_:0]u16{ 't', 'e', 's', 't' });
+    text = EFI.open_file(&[_:0]u16{ 'z', 'i', 'g', 's', 'a', 'w' });
     EFI.read_file_info(text, &file_info);
     EFI.puts("opening file: /");
     EFI.puts_multi(file_info.getFileName());
