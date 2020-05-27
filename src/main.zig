@@ -15,6 +15,13 @@ const kernel_stack_size: u64 = 4;
 var zigsaw: *Zigsaw = undefined;
 var fb: *FrameBuffer = undefined;
 
+const PixelFormat = struct {
+    b: u8,
+    g: u8,
+    r: u8,
+    _reserved: u8,
+};
+
 fn init_graphics() void {
     const mode: *GraphicsOutputProtocolMode = EFI.get_graphics_mode();
     fb = @ptrCast(*FrameBuffer, EFI.allocate_pool(@sizeOf(FrameBuffer)));
@@ -40,12 +47,15 @@ pub fn main() void {
     var buf: [1000]u8 = undefined;
     var kernel_start_address: u64 = undefined;
     var kernel_end_address: u64 = undefined;
+    var i: u32 = 0;
+    var fb_: [*]u8 = undefined;
 
     EFI.init();
     EFI.puts("Hello, UEFI!\r\n");
 
     zigsaw = @ptrCast(*Zigsaw, EFI.allocate_pool(@sizeOf(Zigsaw)));
     init_graphics();
+    fb_ = @intToPtr([*]u8, zigsaw.frame_buffer.base);
 
     EFI.printf(buf[0..], "zigsaw: {*}, base: 0x{x}\r\n", .{ zigsaw, zigsaw.frame_buffer.base });
 
