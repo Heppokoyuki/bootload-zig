@@ -11,6 +11,7 @@ const MemoryType = uefi.tables.MemoryType;
 const Guid = uefi.Guid;
 const MemoryDescriptor = uefi.tables.MemoryDescriptor;
 const fmt = @import("std").fmt;
+const MemoryMap = @import("zigsaw.zig").MemoryMap;
 
 var boot_services: *BootServices = undefined;
 var simple_file_system_protocol: ?*SimpleFileSystemProtocol = undefined;
@@ -23,7 +24,6 @@ var fmt_buf: [1024]u8 = undefined;
 
 pub var root_file: *FileProtocol = undefined;
 var mmap: [*]MemoryDescriptor = undefined;
-var mmap_desc_num: usize = undefined;
 var mmap_desc_size: usize = undefined;
 var mmap_desc_ver: u32 = undefined;
 
@@ -65,7 +65,7 @@ pub fn init() void {
     }
 }
 
-pub fn get_memory_map_and_exit_boot_services() void {
+pub fn get_memory_map_and_exit_boot_services(map: *MemoryMap) void {
     var status: uefi.Status = undefined;
     var mmapsize: usize = 0;
     var key: usize = undefined;
@@ -76,6 +76,7 @@ pub fn get_memory_map_and_exit_boot_services() void {
             @panic("allocatePool() failed!\r\n");
         }
     }
+    map.* = MemoryMap.init(mmapsize / mmap_desc_size, mmapsize, mmap);
     if (boot_services.exitBootServices(uefi.handle, key) != uefi.Status.Success) {
         @panic("exitBootServices() failed!\r\n");
     }

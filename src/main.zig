@@ -7,6 +7,7 @@ const EFI = @import("efi.zig");
 const ELF = @import("elf.zig");
 const Zigsaw = @import("zigsaw.zig").Zigsaw;
 const FrameBuffer = @import("zigsaw.zig").FrameBuffer;
+const MemoryMap = @import("zigsaw.zig").MemoryMap;
 const builtin = @import("builtin");
 
 const page_size: u64 = 1 << 12;
@@ -14,6 +15,7 @@ const kernel_stack_size: u64 = 4;
 
 var zigsaw: *Zigsaw = undefined;
 var fb: *FrameBuffer = undefined;
+var mmap: *MemoryMap = undefined;
 
 const PixelFormat = struct {
     b: u8,
@@ -48,16 +50,13 @@ pub fn main() void {
     var kernel_start_address: u64 = undefined;
     var kernel_end_address: u64 = undefined;
     var i: u32 = 0;
-    var fb_: [*]u8 = undefined;
 
     EFI.init();
     EFI.puts("Hello, UEFI!\r\n");
 
     zigsaw = @ptrCast(*Zigsaw, EFI.allocate_pool(@sizeOf(Zigsaw)));
     init_graphics();
-    fb_ = @intToPtr([*]u8, zigsaw.frame_buffer.base);
-
-    EFI.printf(buf[0..], "zigsaw: {*}, base: 0x{x}\r\n", .{ zigsaw, zigsaw.frame_buffer.base });
+    mmap = @ptrCast(*MemoryMap, EFI.allocate_pool(@sizeOf(MemoryMap)));
 
     text = EFI.open_file(&[_:0]u16{ 'z', 'i', 'g', 's', 'a', 'w' });
     EFI.read_file_info(text, &file_info);
@@ -76,7 +75,8 @@ pub fn main() void {
     EFI.printf(buf[0..], "kernel entrypoint: 0x{x}\r\n", .{ELF.get_entrypoint(buf_pages)});
     kernel_stack_pages = EFI.allocate_pages(kernel_stack_size);
 
-    EFI.get_memory_map_and_exit_boot_services();
+    EFI.get_memory_map_and_exit_boot_services(mmap);
+    zigsaw.memory_map = mmap;
     _ = ELF.load(buf_pages, zigsaw, kernel_stack_pages);
 
     while (true) {}
