@@ -44,7 +44,7 @@ pub fn puts_raw(msg: [*:0]const u16) void {
     _ = con_out.outputString(msg);
 }
 
-pub fn printf(buf: []u8, comptime format: []const u8, args: var) void {
+pub fn printf(buf: []u8, comptime format: []const u8, args: anytype) void {
     puts(fmt.bufPrint(buf, format, args) catch unreachable);
 }
 
@@ -66,7 +66,6 @@ pub fn init() void {
 }
 
 pub fn get_memory_map_and_exit_boot_services(map: *MemoryMap) void {
-    var status: uefi.Status = undefined;
     var mmapsize: usize = 0;
     var key: usize = undefined;
 
@@ -92,7 +91,7 @@ pub fn open_file(path: [*:0]const u16) *FileProtocol {
 
 pub fn read_file_info(file: *FileProtocol, info: *FileInfo) void {
     var buf_size: u64 = @sizeOf(FileInfo) + @sizeOf(u16) * 100;
-    if (file.get_info(&file_info_guid, &buf_size, @ptrCast([*]u8, info)) != uefi.Status.Success) {
+    if (file.getInfo(&file_info_guid, &buf_size, @ptrCast([*]u8, info)) != uefi.Status.Success) {
         @panic("read file info error!!\r\n");
     }
 }

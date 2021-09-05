@@ -4,6 +4,8 @@ const MemoryDescriptor = uefi.tables.MemoryDescriptor;
 pub const Zigsaw = packed struct {
     frame_buffer: *FrameBuffer,
     memory_map: *MemoryMap,
+    kernel_start_address: u64,
+    kernel_end_address: u64,
 };
 
 pub const FrameBuffer = packed struct {

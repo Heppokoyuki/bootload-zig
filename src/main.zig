@@ -8,7 +8,7 @@ const ELF = @import("elf.zig");
 const Zigsaw = @import("zigsaw.zig").Zigsaw;
 const FrameBuffer = @import("zigsaw.zig").FrameBuffer;
 const MemoryMap = @import("zigsaw.zig").MemoryMap;
-const builtin = @import("builtin");
+const builtin = @import("std").builtin;
 
 const page_size: u64 = 1 << 12;
 const kernel_stack_size: u64 = 4;
@@ -33,6 +33,7 @@ fn init_graphics() void {
 
 pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn {
     @setCold(true);
+    _ = error_return_trace;
     EFI.puts("PANIC: ");
     EFI.puts(msg);
     EFI.puts("\r\n");
@@ -42,14 +43,11 @@ pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn
 pub fn main() void {
     var file_info: FileInfo = undefined;
     var text: *FileProtocol = undefined;
-    var key: uefi.protocols.InputKey = undefined;
-    var str: [3:0]u16 = undefined;
     var buf_pages: [*]align(4096) u8 = undefined;
     var kernel_stack_pages: [*]align(4096) u8 = undefined;
     var buf: [1000]u8 = undefined;
     var kernel_start_address: u64 = undefined;
     var kernel_end_address: u64 = undefined;
-    var i: u32 = 0;
 
     EFI.init();
     EFI.puts("Hello, UEFI!\r\n");
@@ -72,6 +70,8 @@ pub fn main() void {
     }
     ELF.get_address(buf_pages, &kernel_start_address, &kernel_end_address);
     EFI.printf(buf[0..], "kernel start: 0x{x}, end: 0x{x}\r\n", .{ kernel_start_address, kernel_end_address });
+    zigsaw.kernel_start_address = kernel_start_address;
+    zigsaw.kernel_end_address = kernel_end_address;
     EFI.printf(buf[0..], "kernel entrypoint: 0x{x}\r\n", .{ELF.get_entrypoint(buf_pages)});
     kernel_stack_pages = EFI.allocate_pages(kernel_stack_size);
 
