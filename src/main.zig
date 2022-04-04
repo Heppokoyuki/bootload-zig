@@ -77,6 +77,7 @@ pub fn main() void {
 
     EFI.get_memory_map_and_exit_boot_services(mmap);
     zigsaw.memory_map = mmap;
+    // kernel_stack_pages are in EfiLoaderData that is safe to use after exit EFIBootServices
     _ = ELF.load(buf_pages, zigsaw, kernel_stack_pages);
 
     while (true) {}

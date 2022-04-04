@@ -19,7 +19,7 @@ var con_out: *SimpleTextOutputProtocol = undefined;
 var graphics: *GraphicsOutputProtocol = undefined;
 var sfsp_guid align(8) = SimpleFileSystemProtocol.guid;
 var gop_guid align(8) = GraphicsOutputProtocol.guid;
-var file_info_guid align(8) = FileProtocol.guid;
+var file_info_guid align(8) = FileInfo.guid;
 var fmt_buf: [1024]u8 = undefined;
 
 pub var root_file: *FileProtocol = undefined;
@@ -54,10 +54,10 @@ pub fn init() void {
 
     _ = con_out.clearScreen();
 
-    if (boot_services.locateProtocol(&sfsp_guid, null, @ptrCast(*?*c_void, &simple_file_system_protocol)) != uefi.Status.Success) {
+    if (boot_services.locateProtocol(&sfsp_guid, null, @ptrCast(*?*anyopaque, &simple_file_system_protocol)) != uefi.Status.Success) {
         @panic("locateProtocol Error!!\r\n");
     }
-    if (boot_services.locateProtocol(&gop_guid, null, @ptrCast(*?*c_void, &graphics)) != uefi.Status.Success) {
+    if (boot_services.locateProtocol(&gop_guid, null, @ptrCast(*?*anyopaque, &graphics)) != uefi.Status.Success) {
         @panic("locateProtocol Error!!\r\n");
     }
     if (simple_file_system_protocol.?.openVolume(&root_file) != uefi.Status.Success) {
